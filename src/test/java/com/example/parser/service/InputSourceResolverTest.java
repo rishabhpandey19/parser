@@ -58,4 +58,62 @@ class InputSourceResolverTest {
         assertThatThrownBy(() -> resolver.resolve("", null)).isInstanceOf(IOException.class);
     }
 
+    @Test
+    void nullInputUsesStdin() throws IOException {
+        InputStream in = new ByteArrayInputStream("from-null".getBytes(StandardCharsets.UTF_8));
+        InputSource s = resolver.resolve(null, in);
+        assertThat(s.type()).isEqualTo(InputSource.Type.STDIN);
+        assertThat(s.content()).isEqualTo("from-null");
+    }
+
+    @Test
+    void filePathNotExistingTreatedAsText() throws IOException {
+        // A value that looks like a path but does not exist falls back to inline text.
+        InputSource s = resolver.resolve("/definitely/not/a/real/file.json", System.in);
+        assertThat(s.type()).isEqualTo(InputSource.Type.TEXT);
+    }
+
+    @Test
+    void urlFetchedOverHttp() throws Exception {
+        com.sun.net.httpserver.HttpServer server = startServer(200, "{\"fetched\":true}");
+        try {
+            int port = server.getAddress().getPort();
+            InputSource s = resolver.resolve("http://127.0.0.1:" + port + "/doc", System.in);
+            assertThat(s.type()).isEqualTo(InputSource.Type.URL);
+            assertThat(s.content()).isEqualTo("{\"fetched\":true}");
+            assertThat(s.reference()).isEqualTo("http://127.0.0.1:" + port + "/doc");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void urlNotFoundThrows() throws Exception {
+        com.sun.net.httpserver.HttpServer server = startServer(404, "");
+        try {
+            int port = server.getAddress().getPort();
+            assertThatThrownBy(() ->
+                    resolver.resolve("http://127.0.0.1:" + port + "/doc", System.in))
+                    .isInstanceOf(IOException.class)
+                    .hasMessageContaining("404");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    private com.sun.net.httpserver.HttpServer startServer(int status, String body)
+            throws Exception {
+        com.sun.net.httpserver.HttpServer server = com.sun.net.httpserver.HttpServer
+                .create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/doc", exchange -> {
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(status, bytes.length == 0 ? -1 : bytes.length);
+            if (bytes.length > 0) {
+                exchange.getResponseBody().write(bytes);
+            }
+            exchange.close();
+        });
+        server.start();
+        return server;
+    }
 }

@@ -53,6 +53,45 @@ class ParserServiceTest {
     }
 
     @Test
+    void forcedFormatOverridesRuleFormat() {
+        // Rule says JSON but we force XML: the XML extractor runs instead.
+        String xmlDoc = "<order><status>shipped</status></order>";
+        ParseResult r = service.parse(xmlDoc, "t", "json-user", FormatType.XML);
+        assertThat(r.format()).isEqualTo(FormatType.XML);
+    }
+
+    @Test
+    void forcedFormatExplicit() {
+        // AUTO/absent on the CLI with an explicit force picks the forced format.
+        ParseResult r = service.parse("{\"user\":{\"name\":\"Alice\"}}", "t", "json-user", FormatType.JSON);
+        assertThat(r.format()).isEqualTo(FormatType.JSON);
+        assertThat(r.fields()).containsEntry("name", "Alice");
+    }
+
+    @Test
+    void autoDetectFailsWhenUndetectable() {
+        ParserProperties props = new ParserProperties();
+        props.getRules().put("auto", new Rule(null, Map.of(
+                "n", new SelectorConfig("$.n", Mode.VALUE))));
+        RuleRegistry reg = new RuleRegistry(props);
+        ParserService svc = new ParserService(reg, new FormatDetector(),
+                java.util.List.of(new JsonExtractor(), new XmlExtractor(), new HtmlExtractor()));
+        // Plain text with no detectable structure: no forced or rule format.
+        assertThatThrownBy(() -> svc.parse("hello world", "t", "auto", null))
+                .isInstanceOf(ParseException.class)
+                .hasMessageContaining("auto-detect");
+    }
+
+    @Test
+    void resultToMapShapesOutput() {
+        ParseResult r = service.parse("{\"user\":{\"name\":\"Alice\"}}", "my-src", "json-user", null);
+        Map<String, Object> map = r.toMap();
+        assertThat(map).containsEntry("format", "JSON");
+        assertThat(map).containsEntry("source", "my-src");
+        assertThat(map.get("fields")).isInstanceOf(Map.class);
+    }
+
+    @Test
     void autoDetectWhenNoRuleFormat() {
         // Build a rule with no explicit format so detection kicks in.
         ParserProperties props = new ParserProperties();

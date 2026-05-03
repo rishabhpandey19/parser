@@ -60,4 +60,53 @@ class HtmlExtractorTest {
                 "nope", new SelectorConfig("table", Mode.VALUE)));
         assertThat(out.get("nope")).isNull();
     }
+
+    @Test
+    void multipleFieldsExtractedInOrder() {
+        Map<String, Object> out = extractor.extract(DOC, Map.of(
+                "title", new SelectorConfig("title", Mode.VALUE),
+                "links", new SelectorConfig("a", Mode.LIST),
+                "heading", new SelectorConfig("h1", Mode.VALUE)));
+        assertThat(out).containsKeys("title", "links", "heading");
+        assertThat(out.get("title")).isEqualTo("Order Status");
+        assertThat(out.get("links")).isEqualTo(List.of("Track order", "Support"));
+        assertThat(out.get("heading")).isEqualTo("Welcome, Alice");
+    }
+
+    @Test
+    void listWithNoMatchesIsNotPresent() {
+        // An empty selector result is treated as no match, not an empty list.
+        Map<String, Object> out = extractor.extract(DOC, Map.of(
+                "imgs", new SelectorConfig("img", Mode.LIST)));
+        assertThat(out.get("imgs")).isNull();
+    }
+
+    @Test
+    void classSelector() {
+        String doc = "<div class=\"card\">hello</div>";
+        Map<String, Object> out = extractor.extract(doc, Map.of(
+                "card", new SelectorConfig(".card", Mode.VALUE)));
+        assertThat(out.get("card")).isEqualTo("hello");
+    }
+
+    @Test
+    void subtreeWithNoMatchIsNull() {
+        Map<String, Object> out = extractor.extract(DOC, Map.of(
+                "aside", new SelectorConfig("aside", Mode.SUBTREE)));
+        assertThat(out.get("aside")).isNull();
+    }
+
+    @Test
+    void blankPathIsNull() {
+        Map<String, Object> out = extractor.extract(DOC, Map.of(
+                "x", new SelectorConfig("   ", Mode.VALUE)));
+        assertThat(out.get("x")).isNull();
+    }
+
+    @Test
+    void emptyContentYieldsNoMatch() {
+        Map<String, Object> out = extractor.extract("", Map.of(
+                "title", new SelectorConfig("title", Mode.VALUE)));
+        assertThat(out.get("title")).isNull();
+    }
 }
