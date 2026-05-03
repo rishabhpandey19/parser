@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: parser
+  main:
+    # CLI app — no web server.
+    web-application-type: none
+    banner-mode: "off"
+  logging:
+    level:
+      root: warn
+
+# Named extraction rules. Reference them from the CLI with --rule <name>.
+# A field is a selector: either a plain string (the path, mode VALUE) or an
+# object { path, mode } where mode is VALUE | LIST | SUBTREE.
+parser:
+  rules:
+    # --- JSON: point at any object/node in the tree (JSONPath) ---
+    json-user:
+      format: JSON
+      fields:
+        name: "$.user.name"
+        email: "$.user.email"
+        emails: { path: "$.user.emails", mode: LIST }
+        user: { path: "$.user", mode: SUBTREE }
+    json-orders:
+      format: JSON
+      fields:
+        count: "$.orders.length()"
+        ids: { path: "$.orders[*].id", mode: LIST }
+        first: { path: "$.orders[0]", mode: SUBTREE }
+
+    # --- XML: extract from tags / attributes (XPath) ---
+    xml-order:
+      format: XML
+      fields:
+        id: "/*/@id"
+        status: "//order/status"
+        items: { path: "//order/items/item", mode: LIST }
+        order: { path: "/order", mode: SUBTREE }
+
+    # --- HTML: CSS selectors (Jsoup) ---
+    html-page:
+      format: HTML
+      fields:
+        title: "title"
+        heading: "h1"
+        links: { path: "a", mode: LIST }
+        main: { path: "main", mode: SUBTREE }

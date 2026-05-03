@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<order id="42">
+  <status>shipped</status>
+  <customer>Alice</customer>
+  <items>
+    <item sku="A1" qty="2">Widget</item>
+    <item sku="B2" qty="1">Gadget</item>
+  </items>
+</order>

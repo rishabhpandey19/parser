@@ -1,0 +1,12 @@
+{
+  "user": {
+    "name": "Alice",
+    "email": "alice@example.com",
+    "emails": ["alice@example.com", "alice@work.com"],
+    "age": 30
+  },
+  "orders": [
+    { "id": 101, "total": 25.5 },
+    { "id": 102, "total": 99.0 }
+  ]
+}
