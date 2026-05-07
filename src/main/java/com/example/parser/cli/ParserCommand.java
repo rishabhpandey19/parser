@@ -19,7 +19,7 @@ import java.util.concurrent.Callable;
 
 /**
  * The command line entry point. The picocli-spring-boot-starter runs this bean
- * after the Spring context has started.
+ * after the Spring context has started. Used to configure the configuration as part of configurable configuration
  */
 @Component
 @Command(name = "parser",
