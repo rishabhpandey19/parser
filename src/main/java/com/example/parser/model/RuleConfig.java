@@ -9,7 +9,6 @@ import java.util.Map;
 /**
  * A single named extraction rule.
  *
- *
  * <p>{@code format} is optional: when absent it is auto-detected from the input
  * at run time. {@code fields} maps a result field name to a selector.
  */
